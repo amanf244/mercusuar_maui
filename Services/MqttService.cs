@@ -1,112 +1,156 @@
-﻿using MQTTnet.Protocol;
-using MQTTnet;
+﻿using MQTTnet;
+using MQTTnet.Protocol;
 using System.Security.Authentication;
 using System.Text;
+using System.Timers;
 
 namespace MauiApp2.Services;
 
 public class HiveMqMqttClient
 {
     private IMqttClient _mqttClient;
-    public bool IsConnected => _mqttClient?.IsConnected == true;
+    public IMqttClient MqttClient => _mqttClient;
 
+    private System.Timers.Timer _reconnectTimer;
 
-    // Ini event buat lempar data ke luar
     public event Action<string, string> MessageReceived;
+    public event Action<string> ConnectionStateChanged;
 
-    public async Task ConnectAsync()
+    private bool _isTryingToReconnect = false;
+    private bool _userInitiatedDisconnect = false;
+
+    public bool IsConnected => _mqttClient?.IsConnected ?? false;
+
+    public HiveMqMqttClient()
     {
         var mqttFactory = new MqttClientFactory();
         _mqttClient = mqttFactory.CreateMqttClient();
 
-        var mqttClientOptions = new MqttClientOptionsBuilder()
+        _mqttClient.ConnectedAsync += OnConnected;
+        _mqttClient.DisconnectedAsync += OnDisconnected;
+        _mqttClient.ApplicationMessageReceivedAsync += OnMessageReceived;
+
+        _reconnectTimer = new System.Timers.Timer(5000);
+        _reconnectTimer.Elapsed += async (s, e) => await TryReconnectAsync();
+        _reconnectTimer.AutoReset = true;
+    }
+
+    private async Task OnConnected(MqttClientConnectedEventArgs arg)
+    {
+        Console.WriteLine("✅ MQTT connected!");
+        _reconnectTimer.Stop();
+        _isTryingToReconnect = false;
+        ConnectionStateChanged?.Invoke("Connected");
+        await Task.CompletedTask;
+    }
+
+    private async Task OnDisconnected(MqttClientDisconnectedEventArgs arg)
+    {
+        Console.WriteLine("⚠️ MQTT disconnected!");
+
+        if (!_userInitiatedDisconnect && !_isTryingToReconnect)
+        {
+            _isTryingToReconnect = true;
+            _reconnectTimer.Start();
+        }
+
+        ConnectionStateChanged?.Invoke("Disconnected");
+        await Task.CompletedTask;
+    }
+
+    private async Task OnMessageReceived(MqttApplicationMessageReceivedEventArgs arg)
+    {
+        var topic = arg.ApplicationMessage.Topic;
+        var payload = Encoding.UTF8.GetString(arg.ApplicationMessage.Payload);
+        MessageReceived?.Invoke(topic, payload);
+        await Task.CompletedTask;
+    }
+
+    public async Task ConnectAsync()
+    {
+        if (_mqttClient.IsConnected)
+        {
+            Console.WriteLine("🔵 Already connected. Skipping connect.");
+            return;
+        }
+
+        var options = new MqttClientOptionsBuilder()
             .WithTcpServer("a3f850802ac34230b60106b86aaa6ae8.s1.eu.hivemq.cloud", 8883)
-            .WithClientId("clientId-BtJuB7AAXo")
+            .WithClientId("maui")
             .WithCredentials("hivemq.webclient.1745768022480", "K1zTM:0g!roXYdJ74w;>")
-            .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V500)
-            .WithTlsOptions(options =>
+            .WithTlsOptions(tls =>
             {
-                options.WithSslProtocols(SslProtocols.Tls12);
-                options.WithCertificateValidationHandler(_ => true);
+                tls.WithSslProtocols(SslProtocols.Tls12);
+                tls.WithCertificateValidationHandler(_ => true);
             })
+            .WithProtocolVersion(MQTTnet.Formatter.MqttProtocolVersion.V500)
             .Build();
-
-        _mqttClient.ConnectedAsync += async e =>
-        {
-            Console.WriteLine("✅ MQTT connected!");
-            await Task.CompletedTask;
-        };
-
-        _mqttClient.DisconnectedAsync += async e =>
-        {
-            Console.WriteLine("⚠️ MQTT disconnected!");
-            await Task.CompletedTask;
-        };
-
-        _mqttClient.ApplicationMessageReceivedAsync += async e =>
-        {
-            var topicReceived = e.ApplicationMessage.Topic;
-            var payloadReceived = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-
-            Console.WriteLine($"📥 Message received - Topic: {topicReceived}, Payload: {payloadReceived}");
-
-            // Panggil event, kasih tau class lain
-            MessageReceived?.Invoke(topicReceived, payloadReceived);
-
-            await Task.CompletedTask;
-        };
 
         try
         {
-            var connectResult = await _mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
-            Console.WriteLine($"🚀 Connect Result: {connectResult.ResultCode}");
+            ConnectionStateChanged?.Invoke("Connecting");
+            await _mqttClient.ConnectAsync(options);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Connect failed: {ex.Message}");
+            ConnectionStateChanged?.Invoke("ConnectFailed");
+            _reconnectTimer.Start();
+        }
+    }
+
+    private async Task TryReconnectAsync()
+    {
+        if (!_mqttClient.IsConnected)
+        {
+            Console.WriteLine("🔄 Attempting reconnect...");
+            ConnectionStateChanged?.Invoke("Reconnecting");
+
+            try
+            {
+                await ConnectAsync();
+            }
+            catch
+            {
+                // Gagal reconnect, biarkan timer jalan terus
+            }
         }
     }
 
     public async Task SubscribeAsync(string topic)
     {
-        if (_mqttClient is null || !_mqttClient.IsConnected)
+        if (_mqttClient.IsConnected)
         {
-            Console.WriteLine("❌ Client not connected.");
-            return;
+            await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder()
+                .WithTopic(topic)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build());
+            Console.WriteLine($"✅ Subscribed to {topic}");
         }
-
-        await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder()
-            .WithTopic(topic)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build());
-
-        Console.WriteLine($"✅ Subscribed to topic: {topic}");
     }
 
     public async Task PublishAsync(string topic, string payload)
     {
-        if (_mqttClient is null || !_mqttClient.IsConnected)
+        if (_mqttClient.IsConnected)
         {
-            Console.WriteLine("❌ Client not connected.");
-            return;
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(payload)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build();
+
+            await _mqttClient.PublishAsync(message);
         }
-
-        var message = new MqttApplicationMessageBuilder()
-            .WithTopic(topic)
-            .WithPayload(payload)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build();
-
-        await _mqttClient.PublishAsync(message, CancellationToken.None);
-        Console.WriteLine("✅ Message published.");
     }
 
     public async Task DisconnectAsync()
     {
-        if (_mqttClient != null && _mqttClient.IsConnected)
+        if (_mqttClient.IsConnected)
         {
+            _userInitiatedDisconnect = true;
             await _mqttClient.DisconnectAsync();
-            Console.WriteLine("✅ Disconnected from MQTT broker.");
+            _reconnectTimer.Stop();
+            Console.WriteLine("✅ User requested disconnect.");
         }
     }
 }

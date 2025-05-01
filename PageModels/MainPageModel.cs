@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using MauiApp2.Models;
 using MauiApp2.Services;
+using System.Diagnostics;
 using System.Globalization; // Tambahan kalau perlu
 using System.Windows.Input;
 
@@ -17,6 +18,7 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     private readonly ModalErrorHandler _errorHandler;
     private readonly SeedDataService _seedDataService;
     private  HiveMqMqttClient _mqttService;
+
 
     private readonly Random _random = new(); // Untuk generate data sensor random
 
@@ -34,6 +36,9 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
 
     [ObservableProperty]
     bool _isBusy;
+
+    [ObservableProperty]
+    bool _isReadOnly = true;
 
     [ObservableProperty]
     bool _isRefreshing;
@@ -54,6 +59,26 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     [ObservableProperty]
     private bool _isFanOn;
 
+    [ObservableProperty]
+    private string _mqttConnectionStatus = "🔴 Disconnected";
+
+    [ObservableProperty]
+    private bool _isConnecting;
+
+    [ObservableProperty]
+    private float _maxTemperature = 0;
+
+    [ObservableProperty]
+    private bool _isTempVisible = true;
+
+    [ObservableProperty]
+    private float _maxTempSet;
+
+    //partial void OnMaxTempSetChanged(float value)
+    //{
+    //    Debug.WriteLineIf
+    //}
+
     public bool HasCompletedTasks
         => Tasks?.Any(t => t.IsCompleted) ?? false;
 
@@ -66,8 +91,77 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         _errorHandler = errorHandler;
         _seedDataService = seedDataService;
         _mqttService = mqttService;
+        ConnectMqtt();
+        _mqttService.ConnectionStateChanged += OnConnectionStateChanged;
         _mqttService.MessageReceived += OnMqttMessageReceived;
     }
+
+    private async void ConnectMqtt()
+    {
+        if (_mqttService == null)
+            return;
+
+        if (_mqttService.MqttClient != null && _mqttService.MqttClient.IsConnected)
+            return;
+
+        try
+        {
+            IsConnecting = true;
+            await _mqttService.ConnectAsync();
+            await _mqttService.SubscribeAsync("iot/sensor");
+            await _mqttService.SubscribeAsync("iot/sensor/set");
+            Console.WriteLine("✅ MQTT Connected and Subscribed.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ MQTT Connect failed: {ex.Message}");
+            MqttConnectionStatus = "❌ Connect Failed!";
+            await AppShell.Current.DisplayAlert("MQTT Error", "Unable to connect MQTT server.", "OK");
+        }
+        finally
+        {
+            IsConnecting = false;
+        }
+    }
+
+
+    private void OnConnectionStateChanged(string status)
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            switch (status)
+            {
+                case "Connected":
+                    MqttConnectionStatus = "🔵 Connected";
+                    IsConnecting = false;
+                    await _mqttService.SubscribeAsync("iot/sensor");
+                    await _mqttService.SubscribeAsync("iot/sensor/set");
+                    break;
+
+                case "Connecting":
+                    MqttConnectionStatus = "🟡 Connecting...";
+                    IsConnecting = true;
+                    break;
+
+                case "Reconnecting":
+                    MqttConnectionStatus = "🟠 Reconnecting...";
+                    IsConnecting = true;
+                    break;
+
+                case "Disconnected":
+                    MqttConnectionStatus = "🔴 Disconnected";
+                    IsConnecting = false;
+                    break;
+
+                case "ConnectFailed":
+                    MqttConnectionStatus = "❌ Connect Failed!";
+                    IsConnecting = false;
+                    await AppShell.Current.DisplayAlert("Connection Failed", "MQTT Broker is not reachable.", "OK");
+                    break;
+            }
+        });
+    }
+
 
     private void OnMqttMessageReceived(string topic, string payload)
     {
@@ -94,6 +188,7 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
                 Humidity = sensorData.Kelembapan;
                 IsLampOn = sensorData.StatusLampu;
                 IsFanOn = sensorData.StatusKipas;
+                MaxTemperature = sensorData.Threshold;
             }
         }
         catch (Exception ex)
@@ -107,9 +202,9 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         //var mqttService = new HiveMqMqttClient();
         //await mqttService.ConnectAsync();
         //await mqttService.PublishAsync("iot/sensor", "Hello MQTT");
-        await _mqttService.ConnectAsync();
-        await _mqttService.PublishAsync("iot/sensor", "Hello Aman");
-        await _mqttService.SubscribeAsync("iot/sensor");
+        //await _mqttService.ConnectAsync();
+        //await _mqttService.PublishAsync("iot/sensor", "Hello Aman");
+        //await _mqttService.SubscribeAsync("iot/sensor");
 
         try
         {
@@ -164,7 +259,7 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
             IsRefreshing = true;
 
             // 🆕 Simulasikan data sensor setiap refresh
-            SimulateSensorData();
+            //SimulateSensorData();
 
             await LoadData();
         }
@@ -187,6 +282,26 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         // 🔥 Random nyalakan/matikan lampu dan kipas
         IsLampOn = _random.Next(2) == 0;
         IsFanOn = _random.Next(2) == 0;
+    }
+
+    [RelayCommand]
+    private async Task editMaxTemp()
+    {
+        //Preferences.Default.Set("maxTemp", MaxTemperature);
+        //MaxTempSet = MaxTemperature;
+        IsTempVisible = !IsTempVisible;
+        if(!IsTempVisible == true)
+        {
+            Debug.WriteLine("IsTempVisible: " + IsTempVisible);
+        }
+        else
+        {
+            Debug.WriteLine("IsTempVisible: " + IsTempVisible);
+            await _mqttService.PublishAsync("iot/sensor/set", MaxTempSet.ToString());
+        }
+       
+
+
     }
 
     [RelayCommand]

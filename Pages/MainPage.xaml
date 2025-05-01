@@ -3,11 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:pageModels="clr-namespace:MauiApp2.PageModels"
              xmlns:helpers="clr-namespace:MauiApp2.Helpers"
+             xmlns:gauge="clr-namespace:Syncfusion.Maui.Gauges;assembly=Syncfusion.Maui.Gauges"
              xmlns:pullToRefresh="clr-namespace:Syncfusion.Maui.Toolkit.PullToRefresh;assembly=Syncfusion.Maui.Toolkit"
              x:Class="MauiApp2.Pages.MainPage"
              x:DataType="pageModels:MainPageModel"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-             Title="{Binding Today}">
+             Title="{x:Binding Today}">
 
     
 
@@ -16,6 +17,9 @@
             <helpers:TemperatureToColorConverter x:Key="TemperatureColorConverter" />
             <helpers:StatusToColorConverter x:Key="StatusColorConverter" />
             <helpers:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <helpers:BoolToImageConverter x:Key="BoolImageConverter" />
+            <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <helpers:EditButtonTextConverter x:Key="EditButtonTextConverter" />
 
             <Style x:Key="CardTitle" TargetType="Label">
                 <Setter Property="FontSize" Value="16"/>
@@ -40,92 +44,241 @@
     </ContentPage.Resources>
 
     <pullToRefresh:SfPullToRefresh
-        IsRefreshing="{Binding IsRefreshing}"
-        RefreshCommand="{Binding RefreshCommand}"
+        IsRefreshing="{x:Binding IsRefreshing}"
+        RefreshCommand="{x:Binding RefreshCommand}"
         BackgroundColor="Transparent">
 
         <pullToRefresh:SfPullToRefresh.PullableContent>
-            <VerticalStackLayout Spacing="20" Padding="20">
-                <!-- Sensor Section -->
-                <Grid ColumnDefinitions="*,*" 
-                      RowDefinitions="Auto,Auto"
-                      ColumnSpacing="15"
-                      RowSpacing="15">
-
-                    <!-- Temperature -->
-                    <Border Grid.Row="0" Grid.Column="0"
-                            BackgroundColor="#FFFFFF"
-                            Stroke="Transparent"
-                            StrokeShape="RoundRectangle 15"
-                            Padding="15">
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="🌡 TEMPRATUR" Style="{StaticResource CardTitle}"/>
-                            <Label Text="{Binding Temperature, StringFormat='{0}°C'}" 
-                                   Style="{StaticResource SensorValue}"
-                                   TextColor="{Binding Temperature, Converter={StaticResource TemperatureColorConverter}}"/>
-                        </VerticalStackLayout>
+            <ScrollView>
+                <VerticalStackLayout Spacing="20" Padding="20">
+                    <!-- MQTT Connection Status -->
+                    <Border BackgroundColor="#FFFFFF"
+Stroke="Transparent"
+StrokeShape="RoundRectangle 15"
+Padding="10">
+                        <HorizontalStackLayout HorizontalOptions="Center">
+                            <ActivityIndicator IsRunning="{x:Binding IsConnecting}" 
+                   IsVisible="{x:Binding IsConnecting}" 
+                   Color="Blue"
+                   HeightRequest="24"
+                   WidthRequest="24"
+                   VerticalOptions="Center"/>
+                            <Label Text="{x:Binding MqttConnectionStatus}" Style="{StaticResource CardTitle}"
+       />
+                        </HorizontalStackLayout>
                     </Border>
 
-                    <!-- Humidity -->
-                    <Border Grid.Row="0" Grid.Column="1"
-                            BackgroundColor="#FFFFFF"
-                            Stroke="Transparent"
-                            StrokeShape="RoundRectangle 15"
-                            Padding="15">
-                        <VerticalStackLayout Spacing="8">
-                            <Label Text="💧 KELEMBAPAN" Style="{StaticResource CardTitle}"/>
-                            <Label Text="{Binding Humidity, StringFormat='{0}%'}" 
-                                   Style="{StaticResource SensorValue}"
-                                   TextColor="#2196F3"/>
-                        </VerticalStackLayout>
-                    </Border>
+                    <!-- Sensor Section -->
+                    <Grid ColumnSpacing="15" RowSpacing="15">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup>
+                                <!-- Desktop Layout (Side by Side) -->
+                                <VisualState x:Name="Desktop">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="768"/>
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Property="ColumnDefinitions" Value="*,*"/>
+                                        <Setter Property="RowDefinitions" Value="Auto"/>
+                                        <!-- Temperature -->
+                                        <Setter TargetName="TemperatureBorder" Property="Grid.Row" Value="0"/>
+                                        <Setter TargetName="TemperatureBorder" Property="Grid.Column" Value="0"/>
+                                        <!-- Humidity -->
+                                        <Setter TargetName="HumidityBorder" Property="Grid.Row" Value="0"/>
+                                        <Setter TargetName="HumidityBorder" Property="Grid.Column" Value="1"/>
+                                    </VisualState.Setters>
+                                </VisualState>
 
-                </Grid>
+                                <!-- Mobile Layout (Stacked) -->
+                                <VisualState x:Name="Mobile">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="0"/>
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Property="ColumnDefinitions" Value="*"/>
+                                        <Setter Property="RowDefinitions" Value="Auto,Auto"/>
+                                        <!-- Temperature -->
+                                        <Setter TargetName="TemperatureBorder" Property="Grid.Row" Value="0"/>
+                                        <Setter TargetName="TemperatureBorder" Property="Grid.Column" Value="0"/>
+                                        <!-- Humidity -->
+                                        <Setter TargetName="HumidityBorder" Property="Grid.Row" Value="1"/>
+                                        <Setter TargetName="HumidityBorder" Property="Grid.Column" Value="0"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
 
-                <!-- Devices Section -->
-                <Grid ColumnDefinitions="*,*"
-                      ColumnSpacing="15">
+                        <!-- Temperature -->
+                        <Border x:Name="TemperatureBorder"
+            BackgroundColor="#FFFFFF"
+            Stroke="Transparent"
+            StrokeShape="RoundRectangle 15"
+            Padding="15">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="🌡 TEMPERATUR" Style="{StaticResource CardTitle}"/>
+                                <gauge:SfRadialGauge BackgroundColor="Transparent">
+                                    <gauge:SfRadialGauge.Axes>
+                                        <gauge:RadialAxis EnableLoadingAnimation="True" UseRangeColorForAxis="True" Interval="10"
+                  Maximum="100" >
+                                            <gauge:RadialAxis.Ranges>
+                                                <gauge:RadialRange StartValue="0"
+                          EndValue="37"
+                          Fill="Green" />
+                                                <gauge:RadialRange StartValue="37"
+                          EndValue="54"
+                          Fill="Orange" />
+                                                <gauge:RadialRange StartValue="54"
+                          EndValue="100"
+                          Fill="red" />
+                                            </gauge:RadialAxis.Ranges>
+                                            <gauge:RadialAxis.Pointers>
+                                                <gauge:NeedlePointer EnableAnimation="True" NeedleFill="Gold" Value="{x:Binding Temperature}" />
+                                            </gauge:RadialAxis.Pointers>
+                                            <gauge:RadialAxis.Annotations>
+                                                <gauge:GaugeAnnotation x:Name="annotation"
+                                       DirectionUnit="Angle"
+                                       DirectionValue="90"
+                                       PositionFactor="0.5">
+                                                    <gauge:GaugeAnnotation.Content>
+                                                        <Label Text="{x:Binding Temperature, StringFormat='{0}°C'}"
+                                   FontSize="25"
+                                   FontAttributes="Bold" 
+                                       TextColor="{x:Binding Temperature, Converter={StaticResource TemperatureColorConverter}}"/>
+                                                    </gauge:GaugeAnnotation.Content>
+                                                </gauge:GaugeAnnotation>
+                                            </gauge:RadialAxis.Annotations>
+                                        </gauge:RadialAxis>
+                                    </gauge:SfRadialGauge.Axes>
+                                </gauge:SfRadialGauge>
+                                <!--<Label Text="{x:Binding Temperature, StringFormat='{0}°C'}" 
+                           Style="{StaticResource SensorValue}"
+                           TextColor="{x:Binding Temperature, Converter={StaticResource TemperatureColorConverter}}"/>-->
+                                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="10">
+                                    <Label Text="Suhu Maksimal" 
+           FontSize="16"
+           HorizontalOptions="Center"/>
 
-                    <!-- Lamp -->
-                    <Border Grid.Column="0"
-                            BackgroundColor="#FFFFFF"
-                            Stroke="Transparent"
-                            StrokeShape="RoundRectangle 15"
-                            Padding="15">
-                        <VerticalStackLayout Spacing="10">
-                            <Label Text="💡 STATUS LAMPU" Style="{StaticResource CardTitle}"/>
-                            <Image Source="{Binding IsLampOn, Converter={StaticResource InvertedBoolConverter}, 
-                                                   ConverterParameter='lamp_on.png;lamp_off.png'}"
-                                   HeightRequest="60"
-                                   Aspect="AspectFit"/>
-                            <Label Text="{Binding IsLampOn, Converter={StaticResource InvertedBoolConverter}, 
-                                                StringFormat='Lampu {0}'}"
-                                   Style="{StaticResource DeviceStatus}"
-                                   TextColor="{Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
-                        </VerticalStackLayout>
-                    </Border>
+                                    <!-- Tampilkan nilai saat mode baca -->
+                                    <Label Text="{x:Binding MaxTemperature, StringFormat='{0}°C'}"
+           FontSize="20"
+           HorizontalOptions="Center"
+           IsVisible="{x:Binding IsTempVisible}"/>
 
-                    <!-- Fan -->
-                    <Border Grid.Column="1"
-                            BackgroundColor="#FFFFFF"
-                            Stroke="Transparent"
-                            StrokeShape="RoundRectangle 15"
-                            Padding="15">
-                        <VerticalStackLayout Spacing="10">
-                            <Label Text="🌀 STATUS KIPAS" Style="{StaticResource CardTitle}"/>
-                            <Image Source="{Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
-                                                   ConverterParameter='fan_on.png;fan_off.png'}"
-                                   HeightRequest="60"
-                                   Aspect="AspectFit"/>
-                            <Label Text="{Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
-                                                StringFormat='Kipas {0}'}"
-                                   Style="{StaticResource DeviceStatus}"
-                                   TextColor="{Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
-                        </VerticalStackLayout>
-                    </Border>
-                </Grid>
+                                    <!-- Tampilkan input saat mode edit -->
+                                    <Entry Text="{x:Binding MaxTempSet, Mode=TwoWay}"
+           Placeholder="Masukkan suhu"
+           Keyboard="Numeric"
+           HorizontalOptions="Center"
+           WidthRequest="200"
+           IsVisible="{x:Binding IsTempVisible, Converter={StaticResource InverseBoolConverter}}"/>
 
-            </VerticalStackLayout>
+                                    <!-- Tombol dengan dua state -->
+                                    <Button Text="{x:Binding IsTempVisible, Converter={StaticResource EditButtonTextConverter}}"
+            Command="{x:Binding editMaxTempCommand}"
+            CornerRadius="20"
+            WidthRequest="120"
+            HorizontalOptions="Center"/>
+                                </VerticalStackLayout>
+
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Humidity -->
+                        <Border x:Name="HumidityBorder"
+            BackgroundColor="#FFFFFF"
+            Stroke="Transparent"
+            StrokeShape="RoundRectangle 15"
+            Padding="15">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="💧 KELEMBAPAN" Style="{StaticResource CardTitle}"/>
+                                
+                                <gauge:SfRadialGauge BackgroundColor="Transparent">
+                                    <gauge:SfRadialGauge.Axes>
+                                        <gauge:RadialAxis EnableLoadingAnimation="True" UseRangeColorForAxis="True" Interval="10">
+                                            <gauge:RadialAxis.AxisLabelStyle>
+                                                <gauge:GaugeLabelStyle FontSize="10" TextColor="Aqua"/>
+                                            </gauge:RadialAxis.AxisLabelStyle>
+                                            <gauge:RadialAxis.AxisLineStyle>
+                                                <gauge:RadialLineStyle ThicknessUnit="Factor" Thickness="0.1"/>
+                                            </gauge:RadialAxis.AxisLineStyle>
+                                            <gauge:RadialAxis.Pointers>
+                                                <gauge:RangePointer  EnableAnimation="True" Value="{x:Binding Humidity}"
+                                    PointerWidth="0.1"
+                                    WidthUnit="Factor">
+                                                    <gauge:RangePointer.GradientStops>
+                                                        <gauge:GaugeGradientStop Value="10"
+                                                 Color="#18dba7" />
+                                                        <gauge:GaugeGradientStop Value="30"
+                                                 Color="#05eafa" />
+                                                    </gauge:RangePointer.GradientStops>
+                                                </gauge:RangePointer>
+                                            </gauge:RadialAxis.Pointers>
+                                            <gauge:RadialAxis.Annotations>
+                                                <gauge:GaugeAnnotation
+    DirectionUnit="Angle"
+    DirectionValue="90"
+    PositionFactor="0.5">
+                                                    <gauge:GaugeAnnotation.Content>
+                                                        <Label Text="{x:Binding Humidity, StringFormat='{0}%'}" 
+                           FontSize="25"
+FontAttributes="Bold" 
+                           TextColor="#2196F3"/>
+                                                    </gauge:GaugeAnnotation.Content>
+                                                </gauge:GaugeAnnotation>
+                                            </gauge:RadialAxis.Annotations>
+                                        </gauge:RadialAxis>
+                                    </gauge:SfRadialGauge.Axes>
+                                </gauge:SfRadialGauge>
+                            </VerticalStackLayout>
+                        </Border>
+
+                    </Grid>
+
+                    <!-- Devices Section -->
+                    <Grid ColumnDefinitions="*,*"
+              ColumnSpacing="15">
+
+                        <!-- Lamp -->
+                        <Border Grid.Column="0"
+                    BackgroundColor="#FFFFFF"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 15"
+                    Padding="15">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="💡 STATUS LAMPU" Style="{StaticResource CardTitle}"/>
+                                <Image Source="{x:Binding IsLampOn, Converter={StaticResource BoolImageConverter}, 
+                                           ConverterParameter='lamp_on.png;lamp_off.png'}"
+                           HeightRequest="60"
+                           Aspect="AspectFit"/>
+                                <Label Text="{x:Binding IsLampOn, Converter={StaticResource InvertedBoolConverter}, 
+                                        StringFormat='Lampu {0}'}"
+                           Style="{StaticResource DeviceStatus}"
+                           TextColor="{x:Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Fan -->
+                        <Border Grid.Column="1"
+                    BackgroundColor="#FFFFFF"
+                    Stroke="Transparent"
+                    StrokeShape="RoundRectangle 15"
+                    Padding="15">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="🌀 STATUS KIPAS" Style="{StaticResource CardTitle}"/>
+                                <Image Source="{x:Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
+                                           ConverterParameter='fan_on.png;fan_off.png'}"
+                           HeightRequest="60"
+                           Aspect="AspectFit"/>
+                                <Label Text="{x:Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
+                                        StringFormat='Kipas {0}'}"
+                           Style="{StaticResource DeviceStatus}"
+                           TextColor="{x:Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                </VerticalStackLayout>
+            </ScrollView>
         </pullToRefresh:SfPullToRefresh.PullableContent>
     </pullToRefresh:SfPullToRefresh>
 </ContentPage>

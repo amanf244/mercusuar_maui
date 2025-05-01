@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Syncfusion.Maui.Toolkit.Hosting;
+using Syncfusion.Maui.Core.Hosting;
 
 namespace MauiApp2;
 public static class MauiProgram
@@ -12,6 +13,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .ConfigureSyncfusionToolkit()
+            .ConfigureSyncfusionCore()
             .ConfigureMauiHandlers(handlers =>
             {
             })

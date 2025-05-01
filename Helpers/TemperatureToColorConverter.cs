@@ -8,8 +8,20 @@ public class TemperatureToColorConverter : IValueConverter
     {
         if (value is double temp)
         {
-            return temp >= 30 ? Colors.Red : Colors.Green;
+            if (temp >= 0 && temp < 37)
+            {
+                return Colors.Green;
+            }
+            else if (temp >= 37 && temp < 54)
+            {
+                return Colors.Orange;
+            }
+            else if (temp >= 54 && temp <= 100)
+            {
+                return Colors.Red;
+            }
         }
+
         return Colors.Black;
     }
 
@@ -25,7 +37,7 @@ public class InvertedBoolConverter : IValueConverter
     {
         if (value is bool boolValue)
         {
-            return boolValue ? "Mati" : "Menyala";
+            return boolValue ? "Menyala" : "Mati";
         }
         return "Unknown";
     }

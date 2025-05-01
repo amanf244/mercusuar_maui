@@ -23,5 +23,10 @@ public class SensorData
     {
         get; set;
     }
+
+    public float Threshold
+    {
+        get; set;
+    }
 }
 
