@@ -10,8 +10,6 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              Title="{x:Binding Today}">
 
-    
-
     <ContentPage.Resources>
         <ResourceDictionary>
             <helpers:TemperatureToColorConverter x:Key="TemperatureColorConverter" />
@@ -53,18 +51,17 @@
                 <VerticalStackLayout Spacing="20" Padding="20">
                     <!-- MQTT Connection Status -->
                     <Border BackgroundColor="#FFFFFF"
-Stroke="Transparent"
-StrokeShape="RoundRectangle 15"
-Padding="10">
+                            Stroke="Transparent"
+                            StrokeShape="RoundRectangle 15"
+                            Padding="10">
                         <HorizontalStackLayout HorizontalOptions="Center">
                             <ActivityIndicator IsRunning="{x:Binding IsConnecting}" 
-                   IsVisible="{x:Binding IsConnecting}" 
-                   Color="Blue"
-                   HeightRequest="24"
-                   WidthRequest="24"
-                   VerticalOptions="Center"/>
-                            <Label Text="{x:Binding MqttConnectionStatus}" Style="{StaticResource CardTitle}"
-       />
+                                              IsVisible="{x:Binding IsConnecting}" 
+                                              Color="Blue"
+                                              HeightRequest="24"
+                                              WidthRequest="24"
+                                              VerticalOptions="Center"/>
+                            <Label Text="{x:Binding MqttConnectionStatus}" Style="{StaticResource CardTitle}"/>
                         </HorizontalStackLayout>
                     </Border>
 
@@ -110,88 +107,69 @@ Padding="10">
 
                         <!-- Temperature -->
                         <Border x:Name="TemperatureBorder"
-            BackgroundColor="#FFFFFF"
-            Stroke="Transparent"
-            StrokeShape="RoundRectangle 15"
-            Padding="15">
+                                BackgroundColor="#FFFFFF"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 15"
+                                Padding="15">
                             <VerticalStackLayout Spacing="8">
                                 <Label Text="🌡 TEMPERATUR" Style="{StaticResource CardTitle}"/>
                                 <gauge:SfRadialGauge BackgroundColor="Transparent">
                                     <gauge:SfRadialGauge.Axes>
                                         <gauge:RadialAxis EnableLoadingAnimation="True" UseRangeColorForAxis="True" Interval="10"
-                  Maximum="100" >
+                                                          Maximum="100" >
                                             <gauge:RadialAxis.Ranges>
-                                                <gauge:RadialRange StartValue="0"
-                          EndValue="37"
-                          Fill="Green" />
-                                                <gauge:RadialRange StartValue="37"
-                          EndValue="54"
-                          Fill="Orange" />
-                                                <gauge:RadialRange StartValue="54"
-                          EndValue="100"
-                          Fill="red" />
+                                                <gauge:RadialRange StartValue="0" EndValue="37" Fill="Green" />
+                                                <gauge:RadialRange StartValue="37" EndValue="54" Fill="Orange" />
+                                                <gauge:RadialRange StartValue="54" EndValue="100" Fill="red" />
                                             </gauge:RadialAxis.Ranges>
                                             <gauge:RadialAxis.Pointers>
                                                 <gauge:NeedlePointer EnableAnimation="True" NeedleFill="Gold" Value="{x:Binding Temperature}" />
                                             </gauge:RadialAxis.Pointers>
                                             <gauge:RadialAxis.Annotations>
                                                 <gauge:GaugeAnnotation x:Name="annotation"
-                                       DirectionUnit="Angle"
-                                       DirectionValue="90"
-                                       PositionFactor="0.5">
+                                                                       DirectionUnit="Angle"
+                                                                       DirectionValue="90"
+                                                                       PositionFactor="0.5">
                                                     <gauge:GaugeAnnotation.Content>
                                                         <Label Text="{x:Binding Temperature, StringFormat='{0}°C'}"
-                                   FontSize="25"
-                                   FontAttributes="Bold" 
-                                       TextColor="{x:Binding Temperature, Converter={StaticResource TemperatureColorConverter}}"/>
+                                                               FontSize="25"
+                                                               FontAttributes="Bold" 
+                                                               TextColor="{x:Binding Temperature, Converter={StaticResource TemperatureColorConverter}}"/>
                                                     </gauge:GaugeAnnotation.Content>
                                                 </gauge:GaugeAnnotation>
                                             </gauge:RadialAxis.Annotations>
                                         </gauge:RadialAxis>
                                     </gauge:SfRadialGauge.Axes>
                                 </gauge:SfRadialGauge>
-                                <!--<Label Text="{x:Binding Temperature, StringFormat='{0}°C'}" 
-                           Style="{StaticResource SensorValue}"
-                           TextColor="{x:Binding Temperature, Converter={StaticResource TemperatureColorConverter}}"/>-->
                                 <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="10">
-                                    <Label Text="Suhu Maksimal" 
-           FontSize="16"
-           HorizontalOptions="Center"/>
-
-                                    <!-- Tampilkan nilai saat mode baca -->
+                                    <Label Text="Suhu Maksimal" FontSize="16" HorizontalOptions="Center"/>
                                     <Label Text="{x:Binding MaxTemperature, StringFormat='{0}°C'}"
-           FontSize="20"
-           HorizontalOptions="Center"
-           IsVisible="{x:Binding IsTempVisible}"/>
-
-                                    <!-- Tampilkan input saat mode edit -->
+                                           FontSize="20"
+                                           HorizontalOptions="Center"
+                                           IsVisible="{x:Binding IsTempVisible}"/>
                                     <Entry Text="{x:Binding MaxTempSet, Mode=TwoWay}"
-           Placeholder="Masukkan suhu"
-           Keyboard="Numeric"
-           HorizontalOptions="Center"
-           WidthRequest="200"
-           IsVisible="{x:Binding IsTempVisible, Converter={StaticResource InverseBoolConverter}}"/>
-
-                                    <!-- Tombol dengan dua state -->
+                                           Placeholder="Masukkan suhu"
+                                           Keyboard="Numeric"
+                                           HorizontalOptions="Center"
+                                           WidthRequest="200"
+                                           IsVisible="{x:Binding IsTempVisible, Converter={StaticResource InverseBoolConverter}}"/>
                                     <Button Text="{x:Binding IsTempVisible, Converter={StaticResource EditButtonTextConverter}}"
-            Command="{x:Binding editMaxTempCommand}"
-            CornerRadius="20"
-            WidthRequest="120"
-            HorizontalOptions="Center"/>
+                                            Command="{x:Binding editMaxTempCommand}"
+                                            CornerRadius="20"
+                                            WidthRequest="120"
+                                            HorizontalOptions="Center"/>
                                 </VerticalStackLayout>
-
                             </VerticalStackLayout>
                         </Border>
 
                         <!-- Humidity -->
                         <Border x:Name="HumidityBorder"
-            BackgroundColor="#FFFFFF"
-            Stroke="Transparent"
-            StrokeShape="RoundRectangle 15"
-            Padding="15">
+                                BackgroundColor="#FFFFFF"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 15"
+                                Padding="15">
                             <VerticalStackLayout Spacing="8">
                                 <Label Text="💧 KELEMBAPAN" Style="{StaticResource CardTitle}"/>
-                                
                                 <gauge:SfRadialGauge BackgroundColor="Transparent">
                                     <gauge:SfRadialGauge.Axes>
                                         <gauge:RadialAxis EnableLoadingAnimation="True" UseRangeColorForAxis="True" Interval="10">
@@ -203,26 +181,21 @@ Padding="10">
                                             </gauge:RadialAxis.AxisLineStyle>
                                             <gauge:RadialAxis.Pointers>
                                                 <gauge:RangePointer  EnableAnimation="True" Value="{x:Binding Humidity}"
-                                    PointerWidth="0.1"
-                                    WidthUnit="Factor">
+                                                                     PointerWidth="0.1"
+                                                                     WidthUnit="Factor">
                                                     <gauge:RangePointer.GradientStops>
-                                                        <gauge:GaugeGradientStop Value="10"
-                                                 Color="#18dba7" />
-                                                        <gauge:GaugeGradientStop Value="30"
-                                                 Color="#05eafa" />
+                                                        <gauge:GaugeGradientStop Value="10" Color="#18dba7" />
+                                                        <gauge:GaugeGradientStop Value="30" Color="#05eafa" />
                                                     </gauge:RangePointer.GradientStops>
                                                 </gauge:RangePointer>
                                             </gauge:RadialAxis.Pointers>
                                             <gauge:RadialAxis.Annotations>
-                                                <gauge:GaugeAnnotation
-    DirectionUnit="Angle"
-    DirectionValue="90"
-    PositionFactor="0.5">
+                                                <gauge:GaugeAnnotation DirectionUnit="Angle" DirectionValue="90" PositionFactor="0.5">
                                                     <gauge:GaugeAnnotation.Content>
                                                         <Label Text="{x:Binding Humidity, StringFormat='{0}%'}" 
-                           FontSize="25"
-FontAttributes="Bold" 
-                           TextColor="#2196F3"/>
+                                                               FontSize="25"
+                                                               FontAttributes="Bold" 
+                                                               TextColor="#2196F3"/>
                                                     </gauge:GaugeAnnotation.Content>
                                                 </gauge:GaugeAnnotation>
                                             </gauge:RadialAxis.Annotations>
@@ -231,52 +204,102 @@ FontAttributes="Bold"
                                 </gauge:SfRadialGauge>
                             </VerticalStackLayout>
                         </Border>
-
                     </Grid>
 
                     <!-- Devices Section -->
-                    <Grid ColumnDefinitions="*,*"
-              ColumnSpacing="15">
-
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="15">
                         <!-- Lamp -->
                         <Border Grid.Column="0"
-                    BackgroundColor="#FFFFFF"
-                    Stroke="Transparent"
-                    StrokeShape="RoundRectangle 15"
-                    Padding="15">
+                                BackgroundColor="#FFFFFF"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 15"
+                                Padding="15">
                             <VerticalStackLayout Spacing="10">
                                 <Label Text="💡 STATUS LAMPU" Style="{StaticResource CardTitle}"/>
                                 <Image Source="{x:Binding IsLampOn, Converter={StaticResource BoolImageConverter}, 
-                                           ConverterParameter='lamp_on.png;lamp_off.png'}"
-                           HeightRequest="60"
-                           Aspect="AspectFit"/>
+                                                          ConverterParameter='lamp_on.png;lamp_off.png'}"
+                                       HeightRequest="60"
+                                       Aspect="AspectFit"/>
                                 <Label Text="{x:Binding IsLampOn, Converter={StaticResource InvertedBoolConverter}, 
-                                        StringFormat='Lampu {0}'}"
-                           Style="{StaticResource DeviceStatus}"
-                           TextColor="{x:Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
+                                                       StringFormat='Lampu {0}'}"
+                                       Style="{StaticResource DeviceStatus}"
+                                       TextColor="{x:Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
+                                <Label Text="{x:Binding ManualModeLamp, StringFormat='Mode: {0}'}"
+                                       Style="{StaticResource DeviceStatus}"
+                                       TextColor="Gray"/>
                             </VerticalStackLayout>
                         </Border>
 
                         <!-- Fan -->
                         <Border Grid.Column="1"
-                    BackgroundColor="#FFFFFF"
-                    Stroke="Transparent"
-                    StrokeShape="RoundRectangle 15"
-                    Padding="15">
+                                BackgroundColor="#FFFFFF"
+                                Stroke="Transparent"
+                                StrokeShape="RoundRectangle 15"
+                                Padding="15">
                             <VerticalStackLayout Spacing="10">
                                 <Label Text="🌀 STATUS KIPAS" Style="{StaticResource CardTitle}"/>
                                 <Image Source="{x:Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
-                                           ConverterParameter='fan_on.png;fan_off.png'}"
-                           HeightRequest="60"
-                           Aspect="AspectFit"/>
+                                                          ConverterParameter='fan_on.png;fan_off.png'}"
+                                       HeightRequest="60"
+                                       Aspect="AspectFit"/>
                                 <Label Text="{x:Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
-                                        StringFormat='Kipas {0}'}"
-                           Style="{StaticResource DeviceStatus}"
-                           TextColor="{x:Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
+                                                       StringFormat='Kipas {0}'}"
+                                       Style="{StaticResource DeviceStatus}"
+                                       TextColor="{x:Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
+                                <Label Text="{x:Binding ManualModeFan, StringFormat='Mode: {0}'}"
+                                       Style="{StaticResource DeviceStatus}"
+                                       TextColor="Gray"/>
                             </VerticalStackLayout>
                         </Border>
                     </Grid>
 
+                    <!-- Manual Control Section -->
+                    <Border BackgroundColor="#FFFFFF"
+                            Stroke="Transparent"
+                            StrokeShape="RoundRectangle 15"
+                            Padding="15">
+                        <VerticalStackLayout Spacing="15">
+                            <Label Text="MANUAL CONTROL" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center"/>
+
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                                <!-- Lamp Control -->
+                                <VerticalStackLayout Spacing="5" Grid.Column="0">
+                                    <Label Text="LAMP" HorizontalOptions="Center"/>
+                                    <Button Text="{x:Binding IsLampOn, Converter={StaticResource InvertedBoolConverter}, 
+                                                            ConverterParameter='MATI;NYALA'}"
+                                            Command="{x:Binding ToggleLampCommand}"
+                                            CornerRadius="20"
+                                            BackgroundColor="{x:Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
+                                </VerticalStackLayout>
+
+                                <!-- Fan Control -->
+                                <VerticalStackLayout Spacing="5" Grid.Column="1">
+                                    <Label Text="FAN" HorizontalOptions="Center"/>
+                                    <Button Text="{x:Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
+                                                            ConverterParameter='MATI;NYALA'}"
+                                            Command="{x:Binding ToggleFanCommand}"
+                                            CornerRadius="20"
+                                            BackgroundColor="{x:Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
+                                </VerticalStackLayout>
+
+                                <!-- Auto Mode -->
+                                <VerticalStackLayout Spacing="5" Grid.Column="2">
+                                    <Label Text="MODE" HorizontalOptions="Center"/>
+                                    <Button Text="AUTO" 
+                                            Command="{x:Binding SetAutoModeCommand}"
+                                            CornerRadius="20"
+                                            BackgroundColor="LightBlue"/>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <Label Text="{x:Binding ManualModeLamp, StringFormat='Lampu: {0}'}"
+                                   HorizontalOptions="Center"
+                                   FontSize="14"/>
+                            <Label Text="{x:Binding ManualModeFan, StringFormat='Kipas: {0}'}"
+                                   HorizontalOptions="Center"
+                                   FontSize="14"/>
+                        </VerticalStackLayout>
+                    </Border>
                 </VerticalStackLayout>
             </ScrollView>
         </pullToRefresh:SfPullToRefresh.PullableContent>

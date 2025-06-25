@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using MauiApp2.Models;
 using MauiApp2.Services;
 using System.Diagnostics;
-using System.Globalization; // Tambahan kalau perlu
+using System.Globalization;
 using System.Windows.Input;
 
 namespace MauiApp2.PageModels;
@@ -17,10 +17,9 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     private readonly CategoryRepository _categoryRepository;
     private readonly ModalErrorHandler _errorHandler;
     private readonly SeedDataService _seedDataService;
-    private  HiveMqMqttClient _mqttService;
+    private HiveMqMqttClient _mqttService;
 
-
-    private readonly Random _random = new(); // Untuk generate data sensor random
+    private readonly Random _random = new();
 
     [ObservableProperty]
     private List<CategoryChartData> _todoCategoryData = [];
@@ -46,7 +45,6 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     [ObservableProperty]
     private string _today = DateTime.Now.ToString("dddd, MMM d");
 
-    // 🆕 Tambahan properti untuk sensor
     [ObservableProperty]
     private double _temperature;
 
@@ -74,13 +72,14 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     [ObservableProperty]
     private float _maxTempSet;
 
-    //partial void OnMaxTempSetChanged(float value)
-    //{
-    //    Debug.WriteLineIf
-    //}
+    // Tambahan properti untuk status manual
+    [ObservableProperty]
+    private bool _manualModeLamp;
 
-    public bool HasCompletedTasks
-        => Tasks?.Any(t => t.IsCompleted) ?? false;
+    [ObservableProperty]
+    private bool _manualModeFan;
+
+    public bool HasCompletedTasks => Tasks?.Any(t => t.IsCompleted) ?? false;
 
     public MainPageModel(SeedDataService seedDataService, ProjectRepository projectRepository,
         TaskRepository taskRepository, CategoryRepository categoryRepository, ModalErrorHandler errorHandler, HiveMqMqttClient mqttService)
@@ -110,6 +109,9 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
             await _mqttService.ConnectAsync();
             await _mqttService.SubscribeAsync("iot/sensor");
             await _mqttService.SubscribeAsync("iot/sensor/set");
+            // Tambahkan subscribe untuk topik kontrol manual
+            await _mqttService.SubscribeAsync("iot/actuator/lamp");
+            await _mqttService.SubscribeAsync("iot/actuator/fan");
             Console.WriteLine("✅ MQTT Connected and Subscribed.");
         }
         catch (Exception ex)
@@ -124,7 +126,6 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         }
     }
 
-
     private void OnConnectionStateChanged(string status)
     {
         MainThread.BeginInvokeOnMainThread(async () =>
@@ -136,6 +137,8 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
                     IsConnecting = false;
                     await _mqttService.SubscribeAsync("iot/sensor");
                     await _mqttService.SubscribeAsync("iot/sensor/set");
+                    await _mqttService.SubscribeAsync("iot/actuator/lamp");
+                    await _mqttService.SubscribeAsync("iot/actuator/fan");
                     break;
 
                 case "Connecting":
@@ -162,10 +165,8 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         });
     }
 
-
     private void OnMqttMessageReceived(string topic, string payload)
     {
-        // Ini dipanggil setiap ada data masuk
         Console.WriteLine($"🔥 MQTT Message - Topic: {topic}, Payload: {payload}");
 
         try
@@ -174,21 +175,14 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
 
             if (sensorData != null)
             {
-                //Dispatcher.Dispatch(() =>
-                //{
-                //    Temperature = sensorData.SuhuLampu;
-                //    Humidity = sensorData.Kelembapan;
-                //    IsLampOn = sensorData.StatusLampu;
-                //    IsFanOn = sensorData.StatusKipas;
-
-                //    // Kalau mau tampilkan semua dalam 1 label
-                //    MqttMessage = $"Suhu: {Temperature}°C\nKelembapan: {Humidity}%\nLampu: {(IsLampOn ? "On" : "Off")}\nKipas: {(IsFanOn ? "On" : "Off")}";
-                //});
                 Temperature = sensorData.SuhuLampu;
                 Humidity = sensorData.Kelembapan;
                 IsLampOn = sensorData.StatusLampu;
                 IsFanOn = sensorData.StatusKipas;
                 MaxTemperature = sensorData.Threshold;
+                // Tambahan: Status mode manual
+                ManualModeLamp = sensorData.ManualModeLamp;
+                ManualModeFan = sensorData.ManualModeFan;
             }
         }
         catch (Exception ex)
@@ -199,17 +193,9 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
 
     private async Task LoadData()
     {
-        //var mqttService = new HiveMqMqttClient();
-        //await mqttService.ConnectAsync();
-        //await mqttService.PublishAsync("iot/sensor", "Hello MQTT");
-        //await _mqttService.ConnectAsync();
-        //await _mqttService.PublishAsync("iot/sensor", "Hello Aman");
-        //await _mqttService.SubscribeAsync("iot/sensor");
-
         try
         {
             IsBusy = true;
-
             Projects = await _projectRepository.ListAsync();
 
             var chartData = new List<CategoryChartData>();
@@ -228,7 +214,6 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
 
             TodoCategoryData = chartData;
             TodoCategoryColors = chartColors;
-
             Tasks = await _taskRepository.ListAsync();
         }
         finally
@@ -241,12 +226,10 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     private async Task InitData(SeedDataService seedDataService)
     {
         bool isSeeded = Preferences.Default.ContainsKey("is_seeded");
-
         if (!isSeeded)
         {
             await seedDataService.LoadSeedDataAsync();
         }
-
         Preferences.Default.Set("is_seeded", true);
         await Refresh();
     }
@@ -257,10 +240,6 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         try
         {
             IsRefreshing = true;
-
-            // 🆕 Simulasikan data sensor setiap refresh
-            //SimulateSensorData();
-
             await LoadData();
         }
         catch (Exception e)
@@ -273,24 +252,11 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
         }
     }
 
-    private void SimulateSensorData()
-    {
-        // 🔥 Update Temperature dan Humidity secara random
-        /*Temperature = Math.Round(_random.NextDouble() * 20 + 20, 1);*/ // 20°C ~ 40°C
-        Humidity = Math.Round(_random.NextDouble() * 50 + 30, 1);    // 30% ~ 80%
-
-        // 🔥 Random nyalakan/matikan lampu dan kipas
-        IsLampOn = _random.Next(2) == 0;
-        IsFanOn = _random.Next(2) == 0;
-    }
-
     [RelayCommand]
     private async Task editMaxTemp()
     {
-        //Preferences.Default.Set("maxTemp", MaxTemperature);
-        //MaxTempSet = MaxTemperature;
         IsTempVisible = !IsTempVisible;
-        if(!IsTempVisible == true)
+        if (!IsTempVisible)
         {
             Debug.WriteLine("IsTempVisible: " + IsTempVisible);
         }
@@ -299,18 +265,65 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
             Debug.WriteLine("IsTempVisible: " + IsTempVisible);
             await _mqttService.PublishAsync("iot/sensor/set", MaxTempSet.ToString());
         }
-       
+    }
 
+    // Command baru untuk kontrol manual
+    [RelayCommand]
+    private async Task ToggleLamp()
+    {
+        try
+        {
+            if (_mqttService == null || !_mqttService.IsConnected)
+                return;
 
+            string command = IsLampOn ? "OFF" : "ON";
+            await _mqttService.PublishAsync("iot/actuator/lamp", command);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error toggling lamp: {ex.Message}");
+        }
     }
 
     [RelayCommand]
-    private void NavigatedTo() =>
-        _isNavigatedTo = true;
+    private async Task ToggleFan()
+    {
+        try
+        {
+            if (_mqttService == null || !_mqttService.IsConnected)
+                return;
+
+            string command = IsFanOn ? "OFF" : "ON";
+            await _mqttService.PublishAsync("iot/actuator/fan", command);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error toggling fan: {ex.Message}");
+        }
+    }
 
     [RelayCommand]
-    private void NavigatedFrom() =>
-        _isNavigatedTo = false;
+    private async Task SetAutoMode()
+    {
+        try
+        {
+            if (_mqttService == null || !_mqttService.IsConnected)
+                return;
+
+            await _mqttService.PublishAsync("iot/actuator/lamp", "AUTO");
+            await _mqttService.PublishAsync("iot/actuator/fan", "AUTO");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error setting auto mode: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void NavigatedTo() => _isNavigatedTo = true;
+
+    [RelayCommand]
+    private void NavigatedFrom() => _isNavigatedTo = false;
 
     [RelayCommand]
     private async Task Appearing()
@@ -335,16 +348,13 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     }
 
     [RelayCommand]
-    private Task AddTask()
-        => Shell.Current.GoToAsync($"task");
+    private Task AddTask() => Shell.Current.GoToAsync($"task");
 
     [RelayCommand]
-    private Task NavigateToProject(Project project)
-        => Shell.Current.GoToAsync($"project?id={project.ID}");
+    private Task NavigateToProject(Project project) => Shell.Current.GoToAsync($"project?id={project.ID}");
 
     [RelayCommand]
-    private Task NavigateToTask(ProjectTask task)
-        => Shell.Current.GoToAsync($"task?id={task.ID}");
+    private Task NavigateToTask(ProjectTask task) => Shell.Current.GoToAsync($"task?id={task.ID}");
 
     [RelayCommand]
     private async Task CleanTasks()

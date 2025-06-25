@@ -28,5 +28,13 @@ public class SensorData
     {
         get; set;
     }
+    public bool ManualModeLamp
+    {
+        get; set;
+    } // Tambahan untuk mode manual
+    public bool ManualModeFan
+    {
+        get; set;
+    }  // Tambahan untuk mode manual
 }
 
