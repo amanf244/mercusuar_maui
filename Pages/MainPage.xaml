@@ -18,6 +18,7 @@
             <helpers:BoolToImageConverter x:Key="BoolImageConverter" />
             <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
             <helpers:EditButtonTextConverter x:Key="EditButtonTextConverter" />
+            <helpers:BoolToColorConverter x:Key="BoolToColorConverter" />
 
             <Style x:Key="CardTitle" TargetType="Label">
                 <Setter Property="FontSize" Value="16"/>
@@ -224,9 +225,9 @@
                                                        StringFormat='Lampu {0}'}"
                                        Style="{StaticResource DeviceStatus}"
                                        TextColor="{x:Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
-                                <Label Text="{x:Binding ManualModeLamp, StringFormat='Mode: {0}'}"
+                                <!--<Label Text="{x:Binding ManualModeLamp, StringFormat='Mode: {0}'}"
                                        Style="{StaticResource DeviceStatus}"
-                                       TextColor="Gray"/>
+                                       TextColor="Gray"/>-->
                             </VerticalStackLayout>
                         </Border>
 
@@ -246,9 +247,9 @@
                                                        StringFormat='Kipas {0}'}"
                                        Style="{StaticResource DeviceStatus}"
                                        TextColor="{x:Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
-                                <Label Text="{x:Binding ManualModeFan, StringFormat='Mode: {0}'}"
+                                <!--<Label Text="{x:Binding ManualModeFan, StringFormat='Mode: {0}'}"
                                        Style="{StaticResource DeviceStatus}"
-                                       TextColor="Gray"/>
+                                       TextColor="Gray"/>-->
                             </VerticalStackLayout>
                         </Border>
                     </Grid>
@@ -259,26 +260,28 @@
                             StrokeShape="RoundRectangle 15"
                             Padding="15">
                         <VerticalStackLayout Spacing="15">
-                            <Label Text="MANUAL CONTROL" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center"/>
+                            <Label Text="Mode Manual" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center"/>
 
                             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
                                 <!-- Lamp Control -->
                                 <VerticalStackLayout Spacing="5" Grid.Column="0">
-                                    <Label Text="LAMP" HorizontalOptions="Center"/>
+                                    <Label Text="Lampu" HorizontalOptions="Center"/>
                                     <Button Text="{x:Binding IsLampOn, Converter={StaticResource InvertedBoolConverter}, 
                                                             ConverterParameter='MATI;NYALA'}"
                                             Command="{x:Binding ToggleLampCommand}"
                                             CornerRadius="20"
+                                            FontSize="15"
                                             BackgroundColor="{x:Binding IsLampOn, Converter={StaticResource StatusColorConverter}}"/>
                                 </VerticalStackLayout>
 
                                 <!-- Fan Control -->
                                 <VerticalStackLayout Spacing="5" Grid.Column="1">
-                                    <Label Text="FAN" HorizontalOptions="Center"/>
+                                    <Label Text="Kipas" HorizontalOptions="Center"/>
                                     <Button Text="{x:Binding IsFanOn, Converter={StaticResource InvertedBoolConverter}, 
                                                             ConverterParameter='MATI;NYALA'}"
                                             Command="{x:Binding ToggleFanCommand}"
                                             CornerRadius="20"
+                                            FontSize="15"
                                             BackgroundColor="{x:Binding IsFanOn, Converter={StaticResource StatusColorConverter}}"/>
                                 </VerticalStackLayout>
 
@@ -288,16 +291,16 @@
                                     <Button Text="AUTO" 
                                             Command="{x:Binding SetAutoModeCommand}"
                                             CornerRadius="20"
-                                            BackgroundColor="LightBlue"/>
+                                            BackgroundColor="{x:Binding IsAllAuto, Converter={StaticResource BoolToColorConverter}}"/>
                                 </VerticalStackLayout>
                             </Grid>
 
-                            <Label Text="{x:Binding ManualModeLamp, StringFormat='Lampu: {0}'}"
+                            <!--<Label Text="{x:Binding ManualModeLamp, StringFormat='Lampu: {0}'}"
                                    HorizontalOptions="Center"
                                    FontSize="14"/>
                             <Label Text="{x:Binding ManualModeFan, StringFormat='Kipas: {0}'}"
                                    HorizontalOptions="Center"
-                                   FontSize="14"/>
+                                   FontSize="14"/>-->
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>

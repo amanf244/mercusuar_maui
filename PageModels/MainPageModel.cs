@@ -33,6 +33,8 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
     [ObservableProperty]
     private List<Project> _projects = [];
 
+    public bool IsAllAuto => !ManualModeLamp && !ManualModeFan;
+
     [ObservableProperty]
     bool _isBusy;
 
@@ -133,7 +135,7 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
             switch (status)
             {
                 case "Connected":
-                    MqttConnectionStatus = "🔵 Connected";
+                    MqttConnectionStatus = "🔵 Terhubung";
                     IsConnecting = false;
                     await _mqttService.SubscribeAsync("iot/sensor");
                     await _mqttService.SubscribeAsync("iot/sensor/set");
@@ -142,24 +144,24 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
                     break;
 
                 case "Connecting":
-                    MqttConnectionStatus = "🟡 Connecting...";
+                    MqttConnectionStatus = "🟡 Menghubungkan...";
                     IsConnecting = true;
                     break;
 
                 case "Reconnecting":
-                    MqttConnectionStatus = "🟠 Reconnecting...";
+                    MqttConnectionStatus = "🟠 Menghubungkan Kembali...";
                     IsConnecting = true;
                     break;
 
                 case "Disconnected":
-                    MqttConnectionStatus = "🔴 Disconnected";
+                    MqttConnectionStatus = "🔴 Terputus";
                     IsConnecting = false;
                     break;
 
                 case "ConnectFailed":
-                    MqttConnectionStatus = "❌ Connect Failed!";
+                    MqttConnectionStatus = "❌ Koneksi Gagal!";
                     IsConnecting = false;
-                    await AppShell.Current.DisplayAlert("Connection Failed", "MQTT Broker is not reachable.", "OK");
+                    await AppShell.Current.DisplayAlert("Koneksi Gagal", "MQTT Broker tidak dapat dihubungkan.", "OK");
                     break;
             }
         });
@@ -183,6 +185,9 @@ public partial class MainPageModel : ObservableObject, IProjectTaskPageModel
                 // Tambahan: Status mode manual
                 ManualModeLamp = sensorData.ManualModeLamp;
                 ManualModeFan = sensorData.ManualModeFan;
+
+                // Perbarui status IsAllAuto
+                OnPropertyChanged(nameof(IsAllAuto));
             }
         }
         catch (Exception ex)
