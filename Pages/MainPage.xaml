@@ -303,6 +303,20 @@
                                    FontSize="14"/>-->
                         </VerticalStackLayout>
                     </Border>
+
+                    <!-- Footer / Copyright -->
+                    <Border BackgroundColor="#F5F5F5"
+        Stroke="Transparent"
+        StrokeShape="RoundRectangle 10"
+        Padding="10"
+        Margin="0,2,0,5">
+                        <Label Text="© 2025 Marsa Aminulloh — All rights reserved"
+           FontSize="12"
+           TextColor="#607D8B"
+           HorizontalOptions="Center"
+           HorizontalTextAlignment="Center" />
+                    </Border>
+
                 </VerticalStackLayout>
             </ScrollView>
         </pullToRefresh:SfPullToRefresh.PullableContent>
